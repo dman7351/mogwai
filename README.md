@@ -20,12 +20,7 @@ You can generate a PAT from the Developer setting tab in GitHub. Ensure you gran
 ```bash
    git clone https://github.com/<your-username>/mogwai.git
 ```
-### 2. **Run the Docker Image**
-This will run the CPU stress test with 4 threads for 10 seconds.
-```bash
-    docker run --rm dman7351/rust-stress-test:latest 4 10
-```
-### 3. **Create Registry Secret**
+### 2. **Create Registry Secret**
 You will need a registry secret in order to pull the image from GitHub:
 ```bash
     kubectl create secret docker-registry github-registry-secret \
