@@ -5,6 +5,9 @@ The project is built using Rust and is designed to run in Kubernetes/Docker envi
 
 ## Prerequisites
 
+### Rust
+Rust is the language used in the project, you can install it [here](https://www.rust-lang.org/tools/install)
+
 ### Docker
 Docker is required to build, run, and push the Docker image for the project.
 
