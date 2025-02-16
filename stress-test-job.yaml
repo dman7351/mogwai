@@ -1,0 +1,12 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rust-stress-test
+spec:
+  template:
+    spec:
+      containers:
+      - name: stress-test
+        image: dman7351/rust-stress-test:latest
+        args: ["4", "10"]  # Runs 4 CPU threads for 10 seconds
+      restartPolicy: Never
