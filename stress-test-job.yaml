@@ -7,6 +7,8 @@ spec:
     spec:
       containers:
       - name: stress-test
-        image: dman7351/rust-stress-test:latest
+        image: ghcr.io/dman7351/mogwai:latest  # Using GitHub Packages
         args: ["4", "10"]  # Runs 4 CPU threads for 10 seconds
+      imagePullSecrets:
+      - name: github-registry-secret  # The secret we created
       restartPolicy: Never
