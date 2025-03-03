@@ -2,6 +2,7 @@ use std::env;
 mod cpu_stress;
 mod memory_stress;
 mod disk_stress;
+mod fork_stress;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -25,6 +26,11 @@ fn main() {
             println!("Starting disk stress test with {} MB for {} seconds...", intensity, duration);
             disk_stress::stress_disk(intensity, duration);       
         }
+        "fork" => {
+            println!("Starting fork stress");
+            fork_stress::stress_fork();
+        }
+        
         _ => {
             println!("Invalid test type. Use 'cpu' or 'mem'.");
         }

@@ -164,6 +164,7 @@ dependencies = [
 name = "stress-test"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "rand",
  "sysinfo",
 ]
