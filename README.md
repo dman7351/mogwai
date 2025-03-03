@@ -51,7 +51,7 @@ To run the test as a Rust executable:
 ### 3b. **Run Test as a Docker container**
 To first build the image use:
 ```bash
-    docker build -t <image name> # i.e rust-stress-test
+    docker build -t <image name> . # i.e rust-stress-test
 ```
 To then run the built image use:
 ```bash
