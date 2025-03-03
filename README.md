@@ -86,6 +86,14 @@ docker pull ghcr.io/<github_username>/mogwai:latest
 ```
 Ensure you are authenticated (github token login) if you are pulling a private repo.
 
+
+MacOS:
+```
+docker build --platform=linux/amd64 -t your-image-name .
+docker tag testing:latest ghcr.io/<Your_Username>/<image_name>:latest
+docker push ghcr.io/<Your_Username>/<image_name>:latest
+```
+
 ### 3c. **Run Test in Kubernetes**
 Create a YAML (or use the one provided) as:
 ```yaml
