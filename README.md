@@ -89,8 +89,8 @@ Ensure you are authenticated (github token login) if you are pulling a private r
 
 MacOS:
 ```
-docker build --platform=linux/amd64 -t your-image-name .
-docker tag testing:latest ghcr.io/<Your_Username>/<image_name>:latest
+docker build --platform=linux/amd64 -t <your-image-name> .
+docker tag <your-image-name>:latest ghcr.io/<Your_Username>/<your-image_name>:latest
 docker push ghcr.io/<Your_Username>/<image_name>:latest
 ```
 
