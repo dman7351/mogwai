@@ -1,5 +1,6 @@
-use libc::{fork, getpid, _exit};
+use libc::fork;
 use std::process::exit;
+//use libc::getpid;
 
 pub fn stress_fork() {
     loop {
