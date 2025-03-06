@@ -51,7 +51,7 @@ To run the test as a Rust executable:
 ### 3b. **Run Test as a Docker container**
 To first build the image use:
 ```bash
-    docker build -t <image name> # i.e rust-stress-test
+    docker build -t <image name> . # i.e rust-stress-test
 ```
 To then run the built image use:
 ```bash
@@ -85,6 +85,14 @@ To pull the image run:
 docker pull ghcr.io/<github_username>/mogwai:latest
 ```
 Ensure you are authenticated (github token login) if you are pulling a private repo.
+
+
+MacOS:
+```
+docker build --platform=linux/amd64 -t <your-image-name> .
+docker tag <your-image-name>:latest ghcr.io/<Your_Username>/<your-image_name>:latest
+docker push ghcr.io/<Your_Username>/<image_name>:latest
+```
 
 ### 3c. **Run Test in Kubernetes**
 Create a YAML (or use the one provided) as:

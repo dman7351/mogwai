@@ -2,6 +2,7 @@ use std::fs::OpenOptions;
 use std::io::{Write, Read};
 use std::time::{Instant, Duration};
 use std::thread::sleep;
+use std::fs;
 
 pub fn stress_disk(file_size_mb: usize, duration: u64) {
     let filename = "disk_test_file";
@@ -34,4 +35,5 @@ pub fn stress_disk(file_size_mb: usize, duration: u64) {
     }
 
     println!("Disk stress test completed.");
+    let _ = fs::remove_file("disk_test_file");
 }
