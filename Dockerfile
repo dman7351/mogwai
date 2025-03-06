@@ -1,5 +1,5 @@
 # Build stage: Use Rust to compile a static binary
-FROM rust:latest AS builder
+FROM --platform=linux/amd64 rust:latest AS builder
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ COPY src ./src
 RUN cargo build --release --target x86_64-unknown-linux-musl
 
 # Final stage: Use minimal Alpine base image
-FROM alpine:latest
+FROM --platform=linux/amd64 alpine:latest
 
 WORKDIR /app
 

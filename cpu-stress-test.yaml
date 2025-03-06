@@ -7,7 +7,7 @@ spec:
     spec:
       containers:
       - name: cpu-stress-test
-        image: ghcr.io/dman7351/stress-test:dev  # Using GitHub Packages
+        image: ghcr.io/${GITHUB_USER}/${PACKAGE_NAME}:latest  # Using GitHub Packages
         args: ["cpu", "4", "10"]  # Runs 4 CPU threads for 10 seconds
       restartPolicy: Never
       imagePullSecrets:
