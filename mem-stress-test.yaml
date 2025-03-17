@@ -7,7 +7,7 @@ spec:
     spec:
       containers:
       - name: mem-stress-test
-        image: ghcr.io/dman7351/stress-test:dev
+        image: ghcr.io/hafnium-ham/testing:latest
         args: ["mem", "400", "10"] #400 MB of RAM allocated for 10 seconds
       restartPolicy: Never
       imagePullSecrets:
