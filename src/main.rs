@@ -1,4 +1,7 @@
 use std::env;
+use iced::Settings;
+use gui::StressGUI;
+mod gui;
 mod cpu_stress;
 mod disk_stress;
 mod memory_stress;
