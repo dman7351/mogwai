@@ -1,5 +1,8 @@
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 use std::thread;
-use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use std::time::Duration;
 
 pub fn stress_cpu(threads: usize, duration: u64) {

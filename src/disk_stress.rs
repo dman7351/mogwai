@@ -1,13 +1,17 @@
-use std::fs::OpenOptions;
-use std::io::{Write, Read};
-use std::time::{Instant, Duration};
-use std::thread::sleep;
 use std::fs;
+use std::fs::OpenOptions;
+use std::io::{Read, Write};
+use std::thread::sleep;
+use std::time::{Duration, Instant};
 
 pub fn stress_disk(file_size_mb: usize, duration: u64) {
     let filename = "disk_test_file";
-    let mut file = OpenOptions::new().create(true).write(true).open(filename).unwrap();
-    
+    let mut file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open(filename)
+        .unwrap();
+
     println!("Writing {} MB to disk...", file_size_mb);
 
     let data = vec![0u8; file_size_mb * 1024 * 1024];
