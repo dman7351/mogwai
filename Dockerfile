@@ -17,12 +17,11 @@ COPY src ./src
 RUN cargo build --release --target x86_64-unknown-linux-musl
 
 # Final stage: Use minimal Alpine base image
-FROM --platform=linux/amd64 alpine:latest
+FROM alpine:latest
 
 WORKDIR /app
 
-# Copy the compiled binary with the updated name
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/stress-test /usr/local/bin/stress-test
-
 # Set the entrypoint to run the stress test
 ENTRYPOINT ["/usr/local/bin/stress-test"]
+
+# most frequent changes go bottom
