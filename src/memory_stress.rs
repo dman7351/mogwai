@@ -1,6 +1,7 @@
 use std::time::{Duration, Instant};
 use std::thread;
 use sysinfo::{System};
+use std::process;
 
 pub fn stress_memory(mb: usize, duration: u64) {
     println!("Allocating {} MB of memory...", mb);
@@ -10,11 +11,21 @@ pub fn stress_memory(mb: usize, duration: u64) {
     println!("Memory allocated. Keeping it active for {} seconds...", duration);
 
     let start = Instant::now();
-    while start.elapsed() < Duration::from_secs(duration) {
+
+    // If duration is 0, run indefinitely
+    if duration == 0 {
+        println!("Running memory stress test indefinitely. To stop, use: kill {}", process::id());
+    }
+
+    while start.elapsed() < Duration::from_secs(duration) || duration == 0 {
         for i in (0..memory_block.len()).step_by(4096) {
             memory_block[i] = i as u8; 
         }
-        thread::sleep(Duration::from_millis(500)); 
+        thread::sleep(Duration::from_millis(500)); // Optional sleep to avoid max CPU usage
+
+        if duration == 0 {
+            continue; // Keep looping indefinitely if duration is 0
+        }
     }
 
     println!("Memory stress test completed.");
