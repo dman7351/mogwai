@@ -9,17 +9,32 @@ RUN apt update && apt install -y musl-tools
 # Set Rust to use musl target for static binary
 RUN rustup target add x86_64-unknown-linux-musl
 
-# Copy Cargo files first (for caching dependencies)
+# --------------------------------------------
+# Step 1: Cache Dependencies Efficiently
+# --------------------------------------------
+
+# Copy only Cargo files first (ensures dependencies are cached)
 COPY Cargo.toml Cargo.lock ./
 
-# This step ensures that dependencies are cached
-RUN cargo fetch
+# Create a dummy main.rs to allow dependency caching
+RUN mkdir -p src && echo "fn main() {}" > src/main.rs
 
-# Now copy the source code
-COPY src ./src
-
-# Build a fully static Rust binary
+# Pre-build dependencies and cache them
 RUN cargo build --release --target x86_64-unknown-linux-musl
+
+# --------------------------------------------
+# Step 2: Copy the Actual Source Code
+# --------------------------------------------
+
+# Now copy the actual project files
+COPY . .
+
+# Rebuild with the actual source code
+RUN cargo build --release --target x86_64-unknown-linux-musl
+
+# --------------------------------------------
+# Step 3: Create Minimal Final Image
+# --------------------------------------------
 
 # Final stage: Use minimal Alpine base image
 FROM alpine:latest
