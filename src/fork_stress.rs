@@ -16,12 +16,14 @@ pub fn stress_fork(num_processes: usize, duration: u64) {
             } else if pid > 0 {
                 // Parent process
                 children.push(pid);
+                thread::sleep(Duration::from_millis(1));
             } else {
                 eprintln!("Fork failed");
                 exit(1);
             }
         }
     }
+    println!("Created {} child processes.", children.len());
 
     // Parent waits for all children
     for pid in children {
