@@ -73,7 +73,7 @@ To run the Rust code as a local service:
 ```
 This will expose port 8080 to which you can make curl POST requests for testing, for example:
 ``` bash
-curl -X POST http://localhost:8080/cpu-stress   -H "Content-Type:application/json"   -d '{"intensity": 1, "duration": 0, "load": 75, "fork": false}'
+curl -X POST http://localhost:8080/cpu-stress   -H "Content-Type:application/json"   -d '{"intensity": 1, "duration": 10, "load": 75, "fork": false}'
 ```
 
 ### 3b. **Run engine as Docker service**
@@ -83,7 +83,7 @@ docker run -p <external-port>:<internal-port> <image-name>
 ```
 This will expose the Docker app as a service with which you can use the same ```curl``` method as before, for example:
 ``` bash
-curl -X POST http://localhost:8080/cpu-stress   -H "Content-Type:application/json"   -d '{"intensity": 1, "duration": 0, "load": 75, "fork": false}'
+curl -X POST http://localhost:8080/cpu-stress   -H "Content-Type:application/json"   -d '{"intensity": 1, "duration": 10, "load": 75, "fork": false}'
 ```
 ### Pushing/Pulling Packages to GitHub Packages
 
