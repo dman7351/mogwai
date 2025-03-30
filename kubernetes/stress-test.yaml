@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: stress-test
+spec:
+  template:
+    spec:
+      containers:
+      - name: stress-test
+        image: ghcr.io/dman7351/stress-test:dev #dev image
+        args: 
+          - "cpu"
+          - "-f"           
+          - "-i"
+          - "10"                      
+          - "-d"              
+          - "10"              
+      restartPolicy: Never
+      imagePullSecrets:
+      - name: github-registry-secret  # Secret for pulling the image from GitHub Packages
