@@ -6,7 +6,7 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
-  - host: controller.local  # Set your desired domain here
+  - host: controller.local
     http:
       paths:
       - path: /
