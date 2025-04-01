@@ -125,11 +125,11 @@ kubectl get svc
 ```
 These should display the appropriate pods/service.
 
-Now for running the controller integration, use ```kubectl apply -f <file>``` on ```controller-deployment```, ```controller-service```, and ```controller-ingress```. Ensure the creation of the controller pod, service, and ingress was successful.
+Now for the controller integration, use ```kubectl apply -f <file>``` on ```controller-deployment```, ```controller-service```, and ```controller-ingress```. Ensure the creation of the controller pod, service, and ingress was successful.
 
-At this point, the controller now has a reachable hostname at ```controller.local```. You can test this endpoint with either a frontend that sends requests to this hostname or ```curl```, for example:
+At this point, the controller now has a reachable hostname at ```controller.<cluster-ip>.nip.io```. You can test this endpoint with either a frontend that sends requests to this hostname or ```curl```, for example:
 ```bash
-curl -X POST http://controller.local/cpu-stress -H "Content-Type: application/json" -d '{"intensity": 4, "duration": 10, "load": 100}'
+curl -X POST http://controller.192.168.49.2.nip.io/cpu-stress -H "Content-Type: application/json" -d '{"intensity": 4, "duration": 10, "load": 100}'
 ```
 
 ***WORK IN PROGRESS***
