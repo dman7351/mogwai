@@ -5,8 +5,9 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
+  ingressClassName: nginx
   rules:
-  - host: controller.local
+  - host: controller.192.168.49.2.nip.io
     http:
       paths:
       - path: /
