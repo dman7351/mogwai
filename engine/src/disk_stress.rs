@@ -1,50 +1,57 @@
-use std::fs::OpenOptions;
+use std::fs::{OpenOptions, remove_file};
 use std::io::{Write, Read};
 use std::time::{Instant, Duration};
-use std::thread::sleep;
-use std::fs;
 use std::process;
+use std::thread::sleep;
+use tokio::task;
 
-pub fn stress_disk(file_size_mb: usize, duration: u64) {
-    let filename = "disk_test_file";
-    let mut file = OpenOptions::new().create(true).write(true).open(filename).unwrap();
-    
-    println!("Writing {} MB to disk...", file_size_mb);
-    
-    let data = vec![0u8; file_size_mb * 1024 * 1024];
-
-    // Print PID if running indefinitely
+pub async fn stress_disk(threads: usize, file_size_mb: usize, duration: u64) {
     if duration == 0 {
         println!("Running disk stress test indefinitely. To stop, use: kill {}", process::id());
     }
 
-    let start = Instant::now();
-    
-    loop {
-        let write_start = Instant::now();
-        file.write_all(&data).unwrap();
-        let write_time = write_start.elapsed().as_secs_f64();
+    let mut handles = Vec::new();
 
-        let write_speed = file_size_mb as f64 / write_time;
-        println!("Write speed: {:.2} MB/s", write_speed);
+    for i in 0..threads {
+        let file_name = format!("disk_test_file_{}", i);
+        let data = vec![0u8; file_size_mb * 1024 * 1024];
 
-        let mut buffer = vec![0u8; file_size_mb * 1024 * 1024];
-        let read_start = Instant::now();
-        let mut file = OpenOptions::new().read(true).open(filename).unwrap();
-        file.read_exact(&mut buffer).unwrap();
-        let read_time = read_start.elapsed().as_secs_f64();
+        let handle = task::spawn_blocking(move || {
+            let start = Instant::now();
 
-        let read_speed = file_size_mb as f64 / read_time;
-        println!("Read speed: {:.2} MB/s", read_speed);
+            loop {
+                // Write Phase
+                let mut file = OpenOptions::new().create(true).write(true).open(&file_name).unwrap();
+                let write_start = Instant::now();
+                file.write_all(&data).unwrap();
+                let write_time = write_start.elapsed().as_secs_f64();
+                let write_speed = file_size_mb as f64 / write_time;
+                println!("[Thread {}] Write speed: {:.2} MB/s", i, write_speed);
 
-        // If duration is set, stop after reaching it
-        if duration > 0 && start.elapsed() >= Duration::from_secs(duration) {
-            break;
-        }
+                // Read Phase
+                let mut buffer = vec![0u8; file_size_mb * 1024 * 1024];
+                let mut file = OpenOptions::new().read(true).open(&file_name).unwrap();
+                let read_start = Instant::now();
+                file.read_exact(&mut buffer).unwrap();
+                let read_time = read_start.elapsed().as_secs_f64();
+                let read_speed = file_size_mb as f64 / read_time;
+                println!("[Thread {}] Read speed: {:.2} MB/s", i, read_speed);
 
-        sleep(Duration::from_millis(500));
+                if duration > 0 && start.elapsed() >= Duration::from_secs(duration) {
+                    break;
+                }
+
+                sleep(Duration::from_millis(500));
+            }
+
+            println!("[Thread {}] Disk stress test completed.", i);
+            let _ = remove_file(&file_name);
+        });
+
+        handles.push(handle);
     }
 
-    println!("Disk stress test completed.");
-    let _ = fs::remove_file("disk_test_file");
+    for handle in handles {
+        handle.await.unwrap();
+    }
 }

@@ -46,7 +46,7 @@ async fn start_memory_stress_test(params: web::Json<TestParams>) -> impl Respond
     let size = params.size.unwrap_or(256);
     println!("Starting memory stress test with {} MB for {} seconds...", size, duration);
     memory_stress::check_memory_usage();
-    memory_stress::stress_memory(size, duration);
+    memory_stress::stress_memory(intensity,size, duration).await;
     memory_stress::check_memory_usage();
 
     HttpResponse::Ok().body("Memory stress test finished\n")
@@ -56,7 +56,7 @@ async fn start_disk_stress_test(params: web::Json<TestParams>) -> impl Responder
     let duration = params.duration.unwrap_or(10);
     let size = params.size.unwrap_or(256);
     println!("Starting disk stress test with {} MB for {} seconds...", size, duration);
-    disk_stress::stress_disk(size, duration);
+    disk_stress::stress_disk(intensity,size, duration).await;
 
     HttpResponse::Ok().body("Disk stress test finished\n")
 }

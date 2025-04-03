@@ -1,35 +1,54 @@
 use std::time::{Duration, Instant};
-use std::thread;
-use sysinfo::System;
+use std::thread::sleep;
 use std::process;
+use sysinfo::System;
+use tokio::task;
 
-pub fn stress_memory(mb: usize, duration: u64) {
-    println!("Allocating {} MB of memory...", mb);
+pub async fn stress_memory(threads: usize, mb_per_thread: usize, duration: u64) {
+    println!(
+        "Spawning {} threads. Each will allocate {} MB (Total: {} MB)",
+        threads,
+        mb_per_thread,
+        threads * mb_per_thread
+    );
 
-    let mut memory_block = vec![0u8; mb * 1024 * 1024];
-
-    println!("Memory allocated. Keeping it active for {} seconds...", duration);
-
-    let start = Instant::now();
-
-    // If duration is 0, run indefinitely
     if duration == 0 {
-        println!("Running memory stress test indefinitely. To stop, use: kill {}", process::id());
+        println!(
+            "Running memory stress test indefinitely. To stop, use: kill {}",
+            process::id()
+        );
     }
 
-    while start.elapsed() < Duration::from_secs(duration) || duration == 0 {
-        for i in (0..memory_block.len()).step_by(4096) {
-            memory_block[i] = i as u8; 
-        }
-        thread::sleep(Duration::from_millis(500)); // Optional sleep to avoid max CPU usage
+    let mut handles = Vec::new();
 
-        if duration == 0 {
-            continue; // Keep looping indefinitely if duration is 0
-        }
+    for thread_id in 0..threads {
+        let handle = task::spawn_blocking(move || {
+            let mut memory_block = vec![0u8; mb_per_thread * 1024 * 1024];
+            let start = Instant::now();
+
+            // if duration == 0 run indefinetly
+            while duration == 0 || start.elapsed() < Duration::from_secs(duration) {
+                for i in (0..memory_block.len()).step_by(4096) {
+                    memory_block[i] = i as u8;
+                }
+
+                // Sleep to reduce CPU 
+                sleep(Duration::from_millis(500));
+            }
+
+            println!("[Thread {}] Memory stress test completed.", thread_id);
+        });
+
+        handles.push(handle);
     }
 
-    println!("Memory stress test completed.");
+    for handle in handles {
+        handle.await.unwrap();
+    }
+
+    println!("All memory stress threads completed.");
 }
+
 
 pub fn check_memory_usage() {
     let mut sys = System::new_all();
