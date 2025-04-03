@@ -3,10 +3,9 @@
 System Info to Mistral AI Adapter
 
 This script takes system information in JSON format (from stdin or a file)
-and sends it to a Mistral AI agent through their API.
+and sends it to a Mistral AI agent through their API without reformatting.
 """
 
-import base64
 import json
 import sys
 import os
@@ -34,7 +33,7 @@ from mistralai import Mistral
 
 def main():
     """Main function to process system information and send to Mistral AI."""
-    # Load Kubernetes configuration for accessing secrets
+    # Load environment variables for API access
     try:
         api_key = os.environ.get("MISTRAL_API_KEY")
         agent_id = os.environ.get("MISTRAL_AGENT_ID")
@@ -87,86 +86,11 @@ def main():
         print(f"Error reading input: {e}")
         sys.exit(1)
     
-    # Format the system information as a simplified summary for the AI
-    system_summary = {
-        "system": {
-            "name": system_info.get("system", {}).get("name", "Unknown"),
-            "version": system_info.get("system", {}).get("version", "Unknown"),
-            "platform": system_info.get("system", {}).get("platform", "Unknown")
-        }
-    }
-    
-    # Add CPU information if available
-    if "cpu" in system_info:
-        system_summary["cpu"] = {
-            "model": system_info["cpu"].get("model", "Unknown"),
-            "physical_cores": system_info["cpu"].get("physical_cores", 0),
-            "total_cores": system_info["cpu"].get("total_cores", 0)
-        }
-    
-    # Add memory information if available
-    if "memory" in system_info:
-        # Extract numeric value from memory strings like "16.00 GB"
-        memory_total = system_info["memory"].get("total", "0 MB")
-        try:
-            # Try to convert memory string to a numeric value in MB
-            memory_parts = memory_total.split()
-            if len(memory_parts) >= 2:
-                value = float(memory_parts[0])
-                unit = memory_parts[1].upper()
-                
-                # Convert to MB based on unit
-                if "GB" in unit:
-                    memory_mb = value * 1024
-                elif "TB" in unit:
-                    memory_mb = value * 1024 * 1024
-                elif "KB" in unit:
-                    memory_mb = value / 1024
-                else:  # Assume MB or other
-                    memory_mb = value
-            else:
-                memory_mb = 0
-        except:
-            memory_mb = 0
-            
-        system_summary["memory_mb"] = int(memory_mb)
-    
-    # Add disk information if available
-    if "disks" in system_info and system_info["disks"]:
-        # Sum up all disk sizes for total capacity
-        total_disk_size = 0
-        for disk in system_info["disks"]:
-            disk_total = disk.get("total", "0 MB")
-            try:
-                # Try to convert disk string to a numeric value in MB
-                disk_parts = disk_total.split()
-                if len(disk_parts) >= 2:
-                    value = float(disk_parts[0])
-                    unit = disk_parts[1].upper()
-                    
-                    # Convert to MB based on unit
-                    if "GB" in unit:
-                        disk_mb = value * 1024
-                    elif "TB" in unit:
-                        disk_mb = value * 1024 * 1024
-                    elif "KB" in unit:
-                        disk_mb = value / 1024
-                    else:  # Assume MB or other
-                        disk_mb = value
-                    
-                    total_disk_size += disk_mb
-                else:
-                    continue
-            except:
-                continue
-                
-        system_summary["disk_size_mb"] = int(total_disk_size)
-    
-    # Define the conversation message with the system information
+    # Define the conversation message with the raw system information
     messages = [
         {
             "role": "user",
-            "content": json.dumps(system_summary, indent=2)
+            "content": json.dumps(system_info)
         }
     ]
 
@@ -176,8 +100,9 @@ def main():
             agent_id=agent_id,
             messages=messages
         )
-
         print(chat_response.choices[0].message.content)
+        
+        # print(messages[0]["content"])
         
     except Exception as e:
         print(f"Error communicating with Mistral AI: {e}")

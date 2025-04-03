@@ -34,7 +34,7 @@ You can set your token as an environment variable as well with:
 
 After creating and storing your PAT, you can login to GitHub packages with this command:
 ```bash
-echo GITHUB_TOKEN | docker login ghcr.io -u <your_github_username> --password-stdin
+echo $GITHUB_TOKEN | docker login ghcr.io -u <your_github_username> --password-stdin
 ```
 
 ## Set Up Instructions
