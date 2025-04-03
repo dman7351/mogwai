@@ -42,6 +42,7 @@ def send_cpu_stress_request(test_params: TestParams):
 def send_memory_stress_request(test_params: TestParams):
     url = "http://engine-service:8080/mem-stress"
     request_data = {
+        "intensity": test_params.intensity,
         "size": test_params.size,
         "duration": test_params.duration,
     }
@@ -54,6 +55,7 @@ def send_memory_stress_request(test_params: TestParams):
 def send_disk_stress_request(test_params: TestParams):
     url = "http://engine-service:8080/disk-stress"
     request_data = {
+        "intensity": test_params.intensity,
         "size": test_params.size,
         "duration": test_params.duration,
     }
