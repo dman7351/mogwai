@@ -1,0 +1,5 @@
+/target
+minikube-darwin-arm64
+src/main
+disk_test_file
+.env
