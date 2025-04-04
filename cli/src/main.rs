@@ -256,7 +256,7 @@ fn collect_test_params() -> Option<TestParams> {
 
     let test_type = match test_type.trim() {
         "1" => "cpu",
-        "2" => "memory",
+        "2" => "mem",
         "3" => "disk",
         _ => {
             println!("\nInvalid choice. Returning to main menu.");
@@ -304,7 +304,13 @@ fn collect_test_params() -> Option<TestParams> {
             io::stdin().read_line(&mut fork).unwrap();
             params.fork = Some(fork.trim().to_lowercase() == "y");
         }
-        "memory" => {
+        "mem" => {
+            print!("Enter number of threads: ");
+            io::stdout().flush().unwrap();
+            let mut threads = String::new();
+            io::stdin().read_line(&mut threads).unwrap();
+            params.threads = Some(threads.trim().parse().unwrap_or(1));
+
             print!("Enter memory size (in MB): ");
             io::stdout().flush().unwrap();
             let mut size = String::new();
@@ -312,6 +318,12 @@ fn collect_test_params() -> Option<TestParams> {
             params.size = Some(size.trim().parse().unwrap_or(100));
         }
         "disk" => {
+            print!("Enter number of threads: ");
+            io::stdout().flush().unwrap();
+            let mut threads = String::new();
+            io::stdin().read_line(&mut threads).unwrap();
+            params.threads = Some(threads.trim().parse().unwrap_or(1));
+
             print!("Enter disk size (in MB): ");
             io::stdout().flush().unwrap();
             let mut size = String::new();
@@ -389,6 +401,7 @@ async fn run_test(client: &Client, server_url: &str, params: &TestParams) {
         .await
     {
         Ok(response) => {
+            println!("{}", serde_json::to_string_pretty(&request).unwrap());
             println!(
                 "Test '{}' request sent successfully! Status: {}",
                 params.name,
