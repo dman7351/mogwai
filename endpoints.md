@@ -12,7 +12,7 @@ You should then be able to access this via ```localhost:<target-port>```.
 ## CPU endpoint ##
 The CPU test end point is ```/cpu-stress```
 The parameters are:
-- intensity: int
+- intensity: int (this is the number of threads)
 - duration: int
 - load: float/int
 - flag: boolean
@@ -24,6 +24,7 @@ d": 75, "fork": false}'
 ## Memory endpoint ##
 The CPU test end point is ```/mem-stress```
 The parameters are:
+- intensity: int (this is the number of threads)
 - size: int
 - duration: int
 The curl command to test is:
@@ -33,6 +34,7 @@ curl -X POST http://localhost:<target-port>/mem-stress   -H "Content-Type:applic
 ## Disk endpoint ##
 The CPU test end point is ```/disk-stress```
 The parameters are:
+- intensity: int (this is the number of threads)
 - size: int
 - duration: int
 The curl command to test is:

@@ -27,8 +27,8 @@ You can generate a PAT from the Developer setting tab in GitHub. Ensure you gran
 
 You can set your token as an environment variable as well with:
 ```bash
-    export GITHUB_TOKEN=your_personal_access_token
-    echo $GITHUB_TOKEN #To test if it is set 
+export GITHUB_TOKEN=your_personal_access_token
+echo $GITHUB_TOKEN 
 ```
 **NOTE:**This will be temporary, for persistance, edit the bashrc file on your system to include the token (recommended).
 
@@ -41,12 +41,12 @@ echo $GITHUB_TOKEN | docker login ghcr.io -u <your_github_username> --password-s
 ### 1. **Clone the Repository**
 
 ```bash
-   git clone https://github.com/<your-username>/mogwai.git
+git clone https://github.com/<your-username>/mogwai.git
 ```
 ### 2. **Start Minikube**
     With Minikube installed, run:
 ```bash
-    minikube start
+minikube start
 ```
 
 Once running ensure to enable all necessary addons (metrics-server and ingress currently):
@@ -59,7 +59,7 @@ minikube addons enable ingress
 You will need a registry secret in order to pull an image from GitHub Packages (not needed if pulling the public image) into the Kubernetes cluster:
 
 ```bash
-    kubectl create secret docker-registry github-registry-secret \
+kubectl create secret docker-registry github-registry-secret \
   --docker-server=ghcr.io \
   --docker-username=<your-github-username> \
   --docker-password=<your-github-token> \
@@ -69,19 +69,9 @@ You will need a registry secret in order to pull an image from GitHub Packages (
 ### 3a. **Run engine as Rust service** 
 To run the Rust code as a local service:
 ```bash
-    cargo run
+cargo run
 ```
 This will expose port 8080 to which you can make curl POST requests for testing, for example:
-``` bash
-curl -X POST http://localhost:8080/cpu-stress   -H "Content-Type:application/json"   -d '{"intensity": 1, "duration": 10, "load": 75, "fork": false}'
-```
-
-### 3b. **Run engine as Docker service**
-First build the image (see Docker section). You can then run the image with:
-```bash
-docker run -p <external-port>:<internal-port> <image-name>
-```
-This will expose the Docker app as a service with which you can use the same ```curl``` method as before, for example:
 ``` bash
 curl -X POST http://localhost:8080/cpu-stress   -H "Content-Type:application/json"   -d '{"intensity": 1, "duration": 10, "load": 75, "fork": false}'
 ```
@@ -90,12 +80,10 @@ curl -X POST http://localhost:8080/cpu-stress   -H "Content-Type:application/jso
 To build an image, ensure a Dockerfile is present. Then run:
 ```bash
 docker build -t <image-name> .
-# If you get platform error, see buildx documentation for specifying your platform
 ```
 After verifying this image works, you can then tag it for pushing:
 ```bash
 docker tag <image-name> ghcr.io/<github-username>/<image-name>:<tag> 
-# The tag part is optional but good for version control
 ```
 You can verify if the tag worked with:
 ```bash
@@ -108,6 +96,16 @@ docker push ghcr.io/<github-username>/<image-name>:<tag>
 After pushing you should see the package in either your personal packages or in the repo if pushing the production build.
 
 Now you can pull with ```docker pull <image-name>``` or test for successful deployment in Kubernetes. NOTE: Ensure you are authenticated (github token login) if you are pulling a private repo.
+
+### 3b. **Run engine as Docker service**
+First build the image ([see GitHub Packages section](#pushingpulling-packages-to-github-packages)). You can then run the image with:
+```bash
+docker run -p <external-port>:<internal-port> <image-name>
+```
+This will expose the Docker app as a service with which you can use the same ```curl``` method as before, for example:
+``` bash
+curl -X POST http://localhost:8080/cpu-stress   -H "Content-Type:application/json"   -d '{"intensity": 1, "duration": 10, "load": 75, "fork": false}'
+```
 
 ### 3c. **Run Engine Deployment in Kubernetes**
 
@@ -123,13 +121,75 @@ kubectl get deployments
 kubectl get pods
 kubectl get svc
 ```
-These should display the appropriate pods/service.
-
-Now for the controller integration, use ```kubectl apply -f <file>``` on ```controller-deployment```, ```controller-service```, and ```controller-ingress```. Ensure the creation of the controller pod, service, and ingress was successful.
-
-At this point, the controller is now reachable through the cluster IP. You can test this endpoint with either a frontend that sends requests to this hostname or ```curl```, for example:
+These should display the appropriate pods/service. If you see an ```ImagePullBackOff``` error under ```STATUS```, it means that the pod/deployment was unable to pull the docker image. Ensure you have modified the ```image``` line in ```engine-service.yaml``` to have **YOUR** private docker image OR the public package attached to the repository. The public image is:
 ```bash
+ghcr.io/dman/mogwai-engine:dev
+```
+Also verify you have your secrets with ```kubectl get secrets```.
+
+If the pods and services are running, you can now port forward the engine service with:
+```bash
+kubectl port-forward svc/engine-service <external-port>:8080
+```
+
+You can now test the endpoint using curl like:
+```bash
+curl -X POST http://localhost:8080/cpu-stress -H "Content-Type: application/json" -d '{"intensity": 4, "duration": 10, "load": 100}'
+
+```
+
+### 3d. **Run Controller Deployment in Kubernetes**
+
+Before testing the controller, **ensure that the engine deployment is operational** *see section 3c*. In the ```kubernetes``` folder are some YAMLs to be used. Ensure minikube is running with ```minikube status``` AND that you modify them to pull your private development images. Then once ready, apply the files:
+```bash
+kubectl apply -f controller-deployment.yaml
+kubectl apply -f controller-service.yaml
+kubectl apply -f controller-ingress.yaml
+```
+
+Confirm the status of these operations with:
+```bash
+kubectl get deployments
+kubectl get pods
+kubectl get svc
+```
+These should display the appropriate pods/service. If you see an ```ImagePullBackOff``` error under ```STATUS```, it means that the pod/deployment was unable to pull the docker image. Ensure you have modified the ```image``` line in ```engine-service.yaml``` to have **YOUR** private docker image OR the public package attached to the repository. The public image is:
+```bash
+ghcr.io/dman/mogwai-controller:dev
+```
+Also verify you have your secrets with ```kubectl get secrets```. 
+
+If the pods and services are running, you can now port forward the controller service with:
+```bash
+kubectl port-forward svc/controller-service <external-port>:8081
+```
+
+You can now test the endpoint using curl like:
+```
+curl -X POST http://localhost:8081/cpu-stress -H "Content-Type: application/json" -d '{"intensity": 4, "duration": 10, "load": 100}'
+
+```
+
+To test via the ingress, ensure that the ingress addon is enabled and the ingress appears with:
+```bash
+kubectl get ingress
+```
+
+With the ingress running, the controller is now reachable through the cluster IP. You can test this endpoint with either a frontend that sends requests to the minikube IP (should be <192.168.49.2>) or ```curl```, for example:
+```
 curl -X POST http://192.168.49.2/cpu-stress -H "Content-Type: application/json" -d '{"intensity": 4, "duration": 10, "load": 100}'
 ```
 
-***WORK IN PROGRESS***
+If you cannot ping your cluster IP, just use the port-forwarding method to test the controller.
+
+### 4. **Run with CLI**
+
+First ensure your engine or controller deployment is running ([see section 3c and 3d](#3c-run-engine-deployment-in-kubernetes)). Then navigate to ```cli``` directory. Once there run:
+```bash
+cargo run
+```
+
+The first input will ask for the URL endpoint, enter the appropriate one. For example, if you are testing via Ingress, type ```http://192.168.49.2``` or if port-forwarding use ```http://localhost:<port>```.
+
+Then follow the on-screen prompts. 
+
