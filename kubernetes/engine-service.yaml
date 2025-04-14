@@ -3,10 +3,10 @@ kind: Service
 metadata:
   name: engine-service
 spec:
+  clusterIP: None
   selector:
-    app: engine
+    app: mogwai-engine
   ports:
     - protocol: TCP
       port: 8080
       targetPort: 8080
-  type: ClusterIP  # The default type
