@@ -12,6 +12,7 @@ spec:
       labels:
         app: controller
     spec:
+      serviceAccountName: controller-sa
       containers:
         - name: controller-container
           image: ghcr.io/dman7351/controller:dev
