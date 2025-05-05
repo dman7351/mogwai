@@ -1,10 +1,20 @@
 use std::time::{Duration, Instant};
 use std::thread::sleep;
-use std::process;
+use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use sysinfo::System;
 use tokio::task;
 
-pub async fn stress_memory(threads: usize, mb_per_thread: usize, duration: u64) {
+pub async fn stress_memory(
+    threads: usize,
+    mb_per_thread: usize,
+    duration: u64,
+    stop_flag: Arc<AtomicBool>,
+    task_id: String,
+) {
+    if duration == 0 {
+        println!("Running memory stress test indefinitely. To stop, send a POST request to: http://localhost:8080/stop/{}", task_id);
+    }
+    
     println!(
         "Spawning {} threads. Each will allocate {} MB (Total: {} MB)",
         threads,
@@ -12,22 +22,21 @@ pub async fn stress_memory(threads: usize, mb_per_thread: usize, duration: u64) 
         threads * mb_per_thread
     );
 
-    if duration == 0 {
-        println!(
-            "Running memory stress test indefinitely. To stop, use: kill {}",
-            process::id()
-        );
-    }
+
 
     let mut handles = Vec::new();
 
     for thread_id in 0..threads {
+        let stop = Arc::clone(&stop_flag);
+
         let handle = task::spawn_blocking(move || {
             let mut memory_block = vec![0u8; mb_per_thread * 1024 * 1024];
             let start = Instant::now();
-
+            
             // if duration == 0 run indefinetly
-            while duration == 0 || start.elapsed() < Duration::from_secs(duration) {
+            while (duration == 0 || start.elapsed() < Duration::from_secs(duration))
+                && !stop.load(Ordering::SeqCst)
+            {
                 for i in (0..memory_block.len()).step_by(4096) {
                     memory_block[i] = i as u8;
                 }
@@ -46,9 +55,7 @@ pub async fn stress_memory(threads: usize, mb_per_thread: usize, duration: u64) 
         handle.await.unwrap();
     }
 
-    println!("All memory stress threads completed.");
 }
-
 
 pub fn check_memory_usage() {
     let mut sys = System::new_all();
