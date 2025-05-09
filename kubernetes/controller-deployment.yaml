@@ -15,7 +15,7 @@ spec:
       serviceAccountName: controller-sa
       containers:
         - name: controller-container
-          image: ghcr.io/dman7351/controller:dev
+          image: ghcr.io/dman7351/mogwai-controller:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8081

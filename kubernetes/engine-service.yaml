@@ -5,7 +5,7 @@ metadata:
 spec:
   clusterIP: None
   selector:
-    app: mogwai-engine
+    app: engine
   ports:
     - protocol: TCP
       port: 8080
