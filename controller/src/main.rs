@@ -5,9 +5,9 @@ use reqwest::Client as HttpClient;
 
 use std::collections::BTreeMap;
 use k8s_openapi::apimachinery::pkg::util::intstr::IntOrString;
-use kube::{Client as KubeClient, api::{Api, PostParams, ObjectMeta}};
+use kube::{Client as KubeClient, api::{Api, PostParams, ObjectMeta, ListParams, DeleteParams}};
 use k8s_openapi::api::core::v1::{Node, Pod, PodSpec, Container, LocalObjectReference, Service, ServiceSpec, ServicePort};
-
+use futures::future::join_all;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct TestParams {
@@ -38,7 +38,7 @@ struct NodeInfo {
 }
 
 #[derive(Debug, Deserialize)]
-struct SpawnRequest {
+struct NodeRequest {
     node_name: String,
 }
 
@@ -65,7 +65,7 @@ async fn list_nodes() -> impl Responder {
 
 #[post("/spawn-engine")]
 async fn spawn_engine(
-    payload: web::Json<SpawnRequest>,
+    payload: web::Json<NodeRequest>,
 ) -> impl Responder {
     let client = match KubeClient::try_default().await {
         Ok(c) => c,
@@ -89,7 +89,7 @@ async fn spawn_engine(
         spec: Some(PodSpec {
             containers: vec![Container {
                 name: "engine-container".to_string(),
-                image: Some("ghcr.io/dman7351/stress-test:dev".to_string()),
+                image: Some("ghcr.io/dman7351/mogwai-engine:latest".to_string()),
                 image_pull_policy: Some("Always".to_string()),
                 ports: Some(vec![k8s_openapi::api::core::v1::ContainerPort {
                     container_port: 8080,
@@ -136,6 +136,40 @@ async fn spawn_engine(
         Ok(_) => HttpResponse::Ok().body("Engine pod and headless service spawned."),
         Err(e) => HttpResponse::InternalServerError().body(format!("Service creation failed: {}", e)),
     }
+}
+
+#[post("/remove-engine")]
+async fn remove_engine(
+    payload: web::Json<NodeRequest>,
+) -> impl Responder {
+    let client = match KubeClient::try_default().await {
+        Ok(c) => c,
+        Err(e) => return HttpResponse::InternalServerError().body(format!("Client error: {}", e)),
+    };
+
+    let pod_name = format!("mogwai-engine-{}", payload.node_name);
+
+    let pods: Api<Pod> = Api::namespaced(client.clone(), "default");
+    let services: Api<Service> = Api::namespaced(client.clone(), "default");
+
+    // Attempt to delete the pod
+    let pod_result = pods.delete(&pod_name, &DeleteParams::default()).await;
+    let pod_msg = match pod_result {
+        Ok(_) => format!("Pod {} deletion initiated.", pod_name),
+        Err(e) => format!("Pod deletion error: {}", e),
+    };
+
+    // Attempt to delete the service
+    let svc_result = services.delete(&pod_name, &DeleteParams::default()).await;
+    let svc_msg = match svc_result {
+        Ok(_) => format!("Service {} deletion initiated.", pod_name),
+        Err(e) => format!("Service deletion error: {}", e),
+    };
+
+    HttpResponse::Ok().json(serde_json::json!({
+        "pod": pod_msg,
+        "service": svc_msg
+    }))
 }
 
 #[post("/cpu-stress")]
@@ -195,12 +229,93 @@ async fn disk_stress(params: web::Json<TestParams>, client: web::Data<HttpClient
     }
 }
 
+#[post("/tasks/{node}")]
+async fn list_tasks(path: web::Path<String>, client: web::Data<HttpClient>) -> impl Responder {
+
+    let node = path.into_inner();
+    let url = format!("http://mogwai-engine-{}.default.svc.cluster.local:8080/tasks", node);
+
+    match client.get(&url).send().await {
+        Ok(resp) => {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            HttpResponse::build(status).body(body)
+        }
+        Err(e) => HttpResponse::InternalServerError().body(format!("Request failed: {}", e)),
+    }
+}
+
+#[post("/stop/{node}/{id}")]
+async fn stop_task(path: web::Path<(String, String)>, client: web::Data<HttpClient>) -> impl Responder {
+    let (node, id) = path.into_inner();
+    let url = format!("http://mogwai-engine-{}.default.svc.cluster.local:8080/stop/{}", node, id);
+
+    match client.post(&url).send().await {
+        Ok(resp) => {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            HttpResponse::build(status).body(body)
+        }
+        Err(e) => HttpResponse::InternalServerError().body(format!("Request failed: {}", e)),
+    }
+}
+
+#[post("/stop-all")]
+async fn stop_all_tasks(client: web::Data<HttpClient>) -> impl Responder {
+
+    // Initialize Kubernetes client
+    let kube_client = match KubeClient::try_default().await {
+        Ok(c) => c,
+        Err(e) => return HttpResponse::InternalServerError().body(format!("Failed to create Kube client: {}", e)),
+    };
+
+    // Get pods with label `app=mogwai-engine`
+    let pods_api: Api<Pod> = Api::namespaced(kube_client.clone(), "default");
+    let lp = ListParams::default().labels("app=mogwai-engine");
+
+    let pods = match pods_api.list(&lp).await {
+        Ok(p) => p,
+        Err(e) => return HttpResponse::InternalServerError().body(format!("Failed to list mogwai-engine pods: {}", e)),
+    };
+
+    // Extract node names from those pods
+    let target_nodes: Vec<String> = pods.items.into_iter()
+        .filter_map(|pod| pod.spec.and_then(|spec| spec.node_name))
+        .collect();
+
+    if target_nodes.is_empty() {
+        return HttpResponse::Ok().body("No mogwai-engine pods found on any nodes.");
+    }
+
+    // Fire off all stop requests in parallel
+    let tasks = target_nodes.iter().map(|node| {
+        let url = format!("http://mogwai-engine-{}.default.svc.cluster.local:8080/stop-all", node);
+        let client = client.clone();
+        let node = node.clone();
+
+        async move {
+            match client.post(&url).send().await {
+                Ok(resp) => {
+                    let status = resp.status();
+                    let body = resp.text().await.unwrap_or_default();
+                    format!("{}: {} - {}", node, status, body)
+                }
+                Err(e) => format!("{}: FAILED - {}", node, e),
+            }
+        }
+    });
+
+    let results: Vec<String> = join_all(tasks).await;
+
+    HttpResponse::Ok().json(results)
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let client = HttpClient::new();
     println!("Starting controller server on 0.0.0.0:8081");
     HttpServer::new(move || {
-        let cors = Cors::permissive(); // Same as `allow_origins = ["*"]` in FastAPI
+        let cors = Cors::permissive();
 
         App::new()
             .wrap(cors)
@@ -210,6 +325,10 @@ async fn main() -> std::io::Result<()> {
             .service(disk_stress)
             .service(list_nodes)
             .service(spawn_engine)
+            .service(remove_engine)
+            .service(list_tasks)
+            .service(stop_task)
+            .service(stop_all_tasks)
     })
     .bind(("0.0.0.0", 8081))?
     .run()
