@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: engine-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: engine
+  template:
+    metadata:
+      labels:
+        app: engine
+    spec:
+      containers:
+      - name: engine-container
+        image: mogwai-engine:front2
+        imagePullPolicy: Never
+        
+        ports:
+        - containerPort: 8080
