@@ -1,18 +1,22 @@
-# MOGWAI: Stress Test Toolkit
+# MOGWAI: Stress Test Toolkit *IN DEVELOPMENT*
 This project provides a lightweight, secure, and scalable stress testing toolkit designed for continuous integration and development (CI/CD) pipelines in cloud environments. It can be used to push services and systems to their limits, ensuring maximum uptime and resilience under load.
 
-The project is built with three core components: frontend, controller, engine. The controller is a python application with the goal of managing communication between the external frontend and internal engine. The engine is a Rust based stress-testing application, deployed internally on the cluster. The frontend is a standalone application that accesses an Ingress service to communicate with the controller.
+The project is built with three core components: frontend, controller, engine.
+
+### ENGINE ###
+The engine is a REST API enabled application that routes requests to the appropriate stress-testing module. It currently supports 3 tests: cpu, memory, and disk I/O. It also has a task registry to keep track of running tasks and stop them (registry is scoped to per engine instance).
+
+### CONTROLLER ###
+The controller is a REST API enabled application that can spawn/remove engine pods in the cluster and route requests to their specific pod.
+It also adapts the task listing/stopping for node specification (see endpoints.md).
+
+### GUI/CLI ###
+The GUI/CLI are local components that connect to a user-specified URL for request sending.
 
 ## Prerequisites
 
 ### Rust
 Rust is the language used in the project, you can install it [here](https://www.rust-lang.org/tools/install).
-
-### Python
-Python is used to build the controller application. Required dependencies are listed under:
-```bash
-/controller/requirements.txt
-```
 
 ### Docker
 Docker is required to build, run, and push the Docker image for the project. Docker is used to containerize our applications for both local and Kubernetes integration. When edits are made to the source code, a new image will need to be generated and pushed to the registry (GitHub Packages for our project) in order to be pulled inside the cluster. 
@@ -20,7 +24,7 @@ Docker is required to build, run, and push the Docker image for the project. Doc
 A complete working prototype will be set as the repository package (public) and development images should be kept private.
 
 ### Kubernetes (Minikube for local development)
-You'll need access to a Kubernetes cluster to run integration tests. Right now Minikube has been tested to work, you can find install instructions [here](https://minikube.sigs.k8s.io/docs/) for local development. A more accurate, professional cluster (with test apps) will be set up on testing machine.
+You'll need access to a Kubernetes cluster to run integration tests. Right now Minikube has been tested to work, you can find install instructions [here](https://minikube.sigs.k8s.io/docs/) for local development. 
 
 ### GitHub Personal Access Token (PAT)
 You can generate a PAT from the Developer setting tab in GitHub. Ensure you grant package permissions and repo permissions. This will be needed for package pushing and pulling.
@@ -109,7 +113,12 @@ curl -X POST http://localhost:8080/cpu-stress   -H "Content-Type:application/jso
 
 ### 3c. **Run Engine Deployment in Kubernetes**
 
-In the ```kubernetes``` folder are some YAMLs to be used. Ensure minikube is running with ```minikube status``` AND that you modify them to pull your private development images. Then once ready, apply the files:
+In the ```kubernetes``` folder are some YAMLs to be used. Ensure minikube is running with ```minikube status``` AND that you modify them to pull your private development images OR the public package attached to the repository. The public images is:
+```bash
+ghcr.io/dman/mogwai-engine:latest
+```
+
+Then once ready, apply the files:
 ```bash
 kubectl apply -f engine-deployment.yaml
 kubectl apply -f engine-service.yaml
@@ -121,10 +130,8 @@ kubectl get deployments
 kubectl get pods
 kubectl get svc
 ```
-These should display the appropriate pods/service. If you see an ```ImagePullBackOff``` error under ```STATUS```, it means that the pod/deployment was unable to pull the docker image. Ensure you have modified the ```image``` line in ```engine-service.yaml``` to have **YOUR** private docker image OR the public package attached to the repository. The public image is:
-```bash
-ghcr.io/dman/mogwai-engine:dev
-```
+These should display the appropriate pods/service. If you see an ```ImagePullBackOff``` error under ```STATUS```, it means that the pod/deployment was unable to pull the docker image. Ensure you have modified the ```image``` line in ```engine-service.yaml``` to have **YOUR** private docker image OR the public package attached to the repository.
+
 Also verify you have your secrets with ```kubectl get secrets```.
 
 If the pods and services are running, you can now port forward the engine service with:
@@ -137,16 +144,22 @@ You can now test the endpoint using curl like:
 curl -X POST http://localhost:8080/cpu-stress -H "Content-Type: application/json" -d '{"intensity": 4, "duration": 10, "load": 100}'
 
 ```
+At the end of testing, it is recommend to remove the engine and service, as the controller can handle engine spawning and removal.
 
 --for devs - read endpoints for additional information
 
 ### 3d. **Run Controller Deployment in Kubernetes**
 
-Before testing the controller, **ensure that the engine deployment is operational** *see section 3c*. In the ```kubernetes``` folder are some YAMLs to be used. Ensure minikube is running with ```minikube status``` AND that you modify them to pull your private development images. Then once ready, apply the files:
+Before testing the controller, **ensure that the engine deployment is operational** *see section 3c*. In the ```kubernetes``` folder are some YAMLs to be used. Ensure minikube is running with ```minikube status``` AND that you modify them to pull your private development images OR the public package attached to the repository. The public package is:
+```bash
+ghcr.io/dman7351/mogwai-controller:latest
+```
+Then once ready, apply the files:
 ```bash
 kubectl apply -f controller-deployment.yaml
 kubectl apply -f controller-service.yaml
 kubectl apply -f controller-ingress.yaml
+kubectl apply -f controller-rbac.yaml
 ```
 
 Confirm the status of these operations with:
@@ -154,11 +167,10 @@ Confirm the status of these operations with:
 kubectl get deployments
 kubectl get pods
 kubectl get svc
+kubectl get sa
 ```
-These should display the appropriate pods/service. If you see an ```ImagePullBackOff``` error under ```STATUS```, it means that the pod/deployment was unable to pull the docker image. Ensure you have modified the ```image``` line in ```engine-service.yaml``` to have **YOUR** private docker image OR the public package attached to the repository. The public image is:
-```bash
-ghcr.io/dman/mogwai-controller:dev
-```
+These should display the appropriate pods/service. If you see an ```ImagePullBackOff``` error under ```STATUS```, it means that the pod/deployment was unable to pull the docker image. Ensure you have modified the ```image``` line in ```engine-service.yaml``` to have **YOUR** private docker image OR the public package attached to the repository.
+
 Also verify you have your secrets with ```kubectl get secrets```. 
 
 If the pods and services are running, you can now port forward the controller service with:
@@ -184,14 +196,16 @@ curl -X POST http://192.168.49.2/cpu-stress -H "Content-Type: application/json" 
 
 If you cannot ping your cluster IP, just use the port-forwarding method to test the controller.
 
-### 4. **Run with CLI**
+## 4. **Test with cURL**
 
-First ensure your engine or controller deployment is running ([see section 3c and 3d](#3c-run-engine-deployment-in-kubernetes)). Then navigate to ```cli``` directory. Once there run:
+For a full list of cURL command and application functionality, see ```endpoints.md```.
+
+### 5. **Run with CLI/GUI**
+
+First ensure your engine or controller deployment is running ([see section 3c and 3d](#3c-run-engine-deployment-in-kubernetes)). Then navigate to ```cli``` directory or ```gui```. Once there run:
 ```bash
 cargo run
 ```
 
 The first input will ask for the URL endpoint, enter the appropriate one. For example, if you are testing via Ingress, type ```http://192.168.49.2``` or if port-forwarding use ```http://localhost:<port>```.
-
-Then follow the on-screen prompts. 
 

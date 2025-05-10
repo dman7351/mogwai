@@ -87,6 +87,54 @@ Or for ingress:
 curl -X POST http://<minikube-ip>/spawn-engine   -H "Content-Type: application/json"   -d '{"node_name": "<node-name>"}'
 ```
 
+## Remove engine endpoint ##
+The remove engine endpoint removes an engine and service for a specified node. The endpoint is ```/remove-engine```
+The parameter is:
+- node_name : String (the name of the node from ```/nodes``` output)
+The curl command to test (via port-forward) is:
+```bash
+curl -X POST http://localhost:<target-port>/remove-engine   -H "Content-Type: application/json"   -d '{"node_name": "<node-name>"}'
+```
+Or for ingress:
+```bash
+curl -X POST http://<minikube-ip>/remove-engine   -H "Content-Type: application/json"   -d '{"node_name": "<node-name>"}'
+```
+
+## List tasks endpoint ##
+This endpoint lists the running tasks on a specific engine instance. There are no json paramters.
+If connecting to engine itself (via local run on port-forward in cluster), the endpoint is ```/tasks```:
+```bash
+curl http://localhost:<target-port>/tasks
+```
+If connecting through the controller, the curl command is changed to a POST request at the endpoint ```tasks/<node>```:
+```bash
+curl -X POST http://<minikube-ip>/tasks/<node> # for ingress
+curl -X POST http://localhost:<target-port>/tasks/<node> # for port forward
+```
+
+## Stop task endpoint ##
+This endpoint will stop the running test based on a given test ID. There are no json parameters.
+If connectiong to the engine itself (via local run or port-forward in cluster), the endpoint is ```/stop/<task-ID>```:
+```bash
+curl -X POST http://localhost:<target-port>/stop/<task-ID>
+```
+If connecting through the controller, the endpoint is ```/stop/<node>/<task-ID>```:
+```bash
+curl -X POST http://<minikube-ip>/stop/<node>/<task_ID> # for ingress
+curl -X POST http://localhost:<target-port>/stop/<node>/<task_ID> # for port forward
+```
+
+## Stop all tasks endpoint ##
+This endpoint will stop all running tasks. There are no json parameters.
+If connecting to the engine itself (via local run or port-forward in cluster), the endpoint is ```/stop-all```:
+```bash
+curl -X POST http://localhost:<target-port>/stop-all
+```
+If connecting through the controller, the endpoint is ```/stop-all```:
+```bash
+curl -X POST http://<minikube-ip>/stop-all # for ingress
+curl -X POST http://localhost:<target-port>/stop-all # for port forward
+```
 
 
 
