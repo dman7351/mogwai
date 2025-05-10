@@ -66,7 +66,7 @@
             };
 
             try {
-                const response = await axios.post(`http://localhost:8000/${testType}-stress`, requestData, {
+                const response = await axios.post(`http://localhost:5000/${testType}-stress`, requestData, {
                     headers: { "Content-Type": "application/json" }
                 });
                 document.getElementById("responseMessage").innerText = `Test started: ${response.data.message}`;

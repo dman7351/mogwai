@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: engine-container
-          image: ghcr.io/dman7351/stress-test:dev  # image from registry
+          image: ghcr.io/dman7351/mogwai-engine:latest  # image from registry
           imagePullPolicy: Always
           ports:
             - containerPort: 8080 
