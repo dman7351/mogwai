@@ -138,6 +138,8 @@ curl -X POST http://localhost:8080/cpu-stress -H "Content-Type: application/json
 
 ```
 
+--for devs - read endpoints for additional information
+
 ### 3d. **Run Controller Deployment in Kubernetes**
 
 Before testing the controller, **ensure that the engine deployment is operational** *see section 3c*. In the ```kubernetes``` folder are some YAMLs to be used. Ensure minikube is running with ```minikube status``` AND that you modify them to pull your private development images. Then once ready, apply the files:
