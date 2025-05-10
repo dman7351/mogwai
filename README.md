@@ -193,3 +193,13 @@ The first input will ask for the URL endpoint, enter the appropriate one. For ex
 
 Then follow the on-screen prompts. 
 
+### 5. ** Run with GUI**
+
+First ensure your engine deployment is currently running ([see section 3c and 3d](#3c-run-engine-deployment-in-kubernetes)). From here you can spawn a new terminal and navigate to ```gui/src``` directory. Once in this directory run the following commands:
+
+```bash
+cargo build
+cargo run
+```
+The GUI will spawn once the run is completed. Here you can toggle the advanced settings button, where you'll be able to change the address and choose what kind of environment from the drop-down menu. If you close the advanced menu by toggling the button once more, your settings will be saved.
+Select what kind of test you would like to run by checking the appropriate box. Input your desired test parameters into the boxes or use the default test parameters. Once satisfied, go ahead and hit the ```RUN TESTS``` button. You can hit the ```LIST TASKS``` button which will list all tasks created by the engine. And finally, you can hit the ```SAVE RESULTS``` button to save the information that was generated. It will save these .txt files into a folder labeled results, or create one if it doesn't exist.
